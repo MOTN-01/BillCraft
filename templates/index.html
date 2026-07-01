@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Your Business -->
+<div class="card">
+    <div class="card-header">
+        <div class="section-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Your Business
+        </div>
+        <button type="button" class="btn-secondary" onclick="showModal('edit-biz-modal')">Edit</button>
+    </div>
+    <div class="biz-info">
+        <strong>{{ biz.company }}</strong>
+        <span>{{ biz.street }} &bull; {{ biz.phone }}</span>
+    </div>
+</div>
+
+<!-- Invoice Form -->
+<form id="invoice-form">
+
+    <!-- Bill To -->
+    <div class="card">
+        <div class="section-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Bill To
+        </div>
+        <div class="bill-grid">
+            <div class="client-col">
+                <label>Client</label>
+                <div class="select-row">
+                    {% if clients %}
+                    <select name="client" id="client-select" required>
+                        {% for client in clients %}
+                        <option value="{{ client.name }}"
+                            {% if client.name == selected_client %}selected{% endif %}>
+                            {{ client.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn-secondary" onclick="openEditClient()">Edit</button>
+                    {% else %}
+                    <select name="client" id="client-select" disabled>
+                        <option>No clients yet</option>
+                    </select>
+                    <button type="button" class="btn-secondary" disabled>Edit</button>
+                    {% endif %}
+                    <button type="button" class="btn-secondary" onclick="showModal('add-client-modal')">+ New</button>
+                </div>
+            </div>
+            <div class="invoice-col">
+                <label>Invoice Number</label>
+                <input type="text" name="invoice_num" value="{{ invoice_num }}" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Work -->
+    <div class="card">
+        <div class="section-label label-yellow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.414 10l-7.383 7.418a2.091 2.091 0 0 0 0 2.967 2.11 2.11 0 0 0 2.976 0l7.407-7.385"/><path d="M18.121 15.293l2.586-2.586a1 1 0 0 0 0-1.414l-7.586-7.586a1 1 0 0 0-1.414 0l-2.586 2.586a1 1 0 0 0 0 1.414l7.586 7.586a1 1 0 0 0 1.414 0z"/></svg>
+            Work
+        </div>
+        <div class="desc-price-grid">
+            <div>
+                <label>Description</label>
+                <textarea name="work" rows="6" required></textarea>
+            </div>
+            <div class="price-col">
+                <label>Price $</label>
+                <input type="number" step="0.01" min="0" name="work_price" placeholder="$0" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Materials -->
+    <div class="card">
+        <div class="section-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            Materials
+        </div>
+        <div class="desc-price-grid">
+            <div>
+                <label>Description</label>
+                <textarea name="material" rows="6" required></textarea>
+            </div>
+            <div class="price-col">
+                <label>Price $</label>
+                <input type="number" step="0.01" min="0" name="material_price" placeholder="$0" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="section-label label-yellow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Notes
+        </div>
+        <textarea name="address" rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn-primary btn-large">Generate Invoice</button>
+
+</form>
+
+<!-- Add Client Modal -->
+<div id="add-client-modal" class="modal-overlay" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Add New Client</div>
+        <form method="POST" action="/add-client">
+            <label>Business Name</label>
+            <input type="text" name="name" required autofocus>
+            <label>Street Address</label>
+            <input type="text" name="street" required>
+            <label>City, State, Zip</label>
+            <input type="text" name="city_state_zip" required>
+            <label>Email (for sending invoices)</label>
+            <input type="email" name="email" placeholder="optional">
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="hideModal('add-client-modal')">Cancel</button>
+                <button type="submit" class="btn-primary">Add Client</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div id="edit-client-modal" class="modal-overlay" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Edit Client</div>
+        <form method="POST" action="/edit-client">
+            <input type="hidden" name="original_name" id="edit-original-name">
+            <label>Business Name</label>
+            <input type="text" name="name" id="edit-client-name" required>
+            <label>Street Address</label>
+            <input type="text" name="street" id="edit-client-street" required>
+            <label>City, State, Zip</label>
+            <input type="text" name="city_state_zip" id="edit-client-csz" required>
+            <label>Email</label>
+            <input type="email" name="email" id="edit-client-email" placeholder="optional">
+            <div class="modal-actions">
+                <button type="button" class="btn-danger" id="delete-client-btn">Delete</button>
+                <button type="button" class="btn-secondary" onclick="hideModal('edit-client-modal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save</button>
+            </div>
+        </form>
+        <form id="delete-client-form" method="POST" action="/delete-client" style="display:none">
+            <input type="hidden" name="name" id="delete-client-name">
+        </form>
+    </div>
+</div>
+
+<!-- Edit Business Modal -->
+<div id="edit-biz-modal" class="modal-overlay" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Edit Business Info</div>
+        <form method="POST" action="/edit-business">
+            <label>Company Name</label>
+            <input type="text" name="company" value="{{ biz.company }}" required>
+            <label>Street Address</label>
+            <input type="text" name="street" value="{{ biz.street }}" required>
+            <label>Phone</label>
+            <input type="text" name="phone" value="{{ biz.phone }}" required>
+            <label>Current Invoice Number</label>
+            <input type="number" name="invoice_num" value="{{ invoice_num }}" class="short" required>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="hideModal('edit-biz-modal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const clientData = {{ clients_json | safe }};
+
+// ── Textarea auto-resize ──────────────────────────────────────────────────
+function setupTextareas() {
+    document.querySelectorAll('textarea').forEach(ta => {
+        const min = ta.offsetHeight;
+        function resize() {
+            ta.style.height = 'auto';
+            ta.style.height = Math.max(ta.scrollHeight, min) + 'px';
+        }
+        ta.addEventListener('input', resize);
+        resize();
+    });
+}
+setupTextareas();
+
+// ── Restore draft from sessionStorage ────────────────────────────────────
+const draft = sessionStorage.getItem('invoiceFormDraft');
+if (draft) {
+    const saved = JSON.parse(draft);
+    const form = document.getElementById('invoice-form');
+    for (const [k, v] of Object.entries(saved)) {
+        const el = form.querySelector(`[name="${k}"]`);
+        if (!el) continue;
+        if (el.tagName === 'SELECT') {
+            Array.from(el.options).forEach(o => { o.selected = o.value === v; });
+        } else {
+            el.value = v;
+        }
+    }
+    document.querySelectorAll('textarea').forEach(ta => ta.dispatchEvent(new Event('input')));
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────
+function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+});
+
+// ── Edit client ───────────────────────────────────────────────────────────
+function openEditClient() {
+    const name = document.getElementById('client-select').value;
+    const client = clientData.find(c => c.name === name);
+    if (!client) return;
+    document.getElementById('edit-original-name').value = client.name;
+    document.getElementById('edit-client-name').value = client.name;
+    document.getElementById('edit-client-street').value = client.street;
+    document.getElementById('edit-client-csz').value = client.city_state_zip;
+    document.getElementById('edit-client-email').value = client.email || '';
+    document.getElementById('delete-client-name').value = client.name;
+    showModal('edit-client-modal');
+}
+
+document.getElementById('delete-client-btn').addEventListener('click', () => {
+    const name = document.getElementById('delete-client-name').value;
+    if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+        document.getElementById('delete-client-form').submit();
+    }
+});
+
+// ── Generate invoice ──────────────────────────────────────────────────────
+document.getElementById('invoice-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('[type=submit]');
+    btn.textContent = 'Generating…';
+    btn.disabled = true;
+
+    this.querySelectorAll('[inputmode="decimal"]').forEach(el => {
+        if (!el.value.trim()) el.value = '0';
+    });
+
+    const fd = new FormData(this);
+    const saved = {};
+    for (const [k, v] of fd.entries()) {
+        if (k !== 'invoice_num') saved[k] = v;
+    }
+    sessionStorage.setItem('invoiceFormDraft', JSON.stringify(saved));
+
+    try {
+        const res = await fetch('/generate', { method: 'POST', body: fd });
+        if (res.ok) {
+            const { token } = await res.json();
+            window.location.href = `/view/${token}`;
+        } else {
+            alert('Error: ' + await res.text());
+            btn.textContent = 'Generate Invoice';
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.textContent = 'Generate Invoice';
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

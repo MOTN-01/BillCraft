@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Preview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        html, body { height: 100%; overflow: hidden; }
+        .preview-page {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 54px);
+            padding: 12px;
+            gap: 10px;
+        }
+        .preview-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .preview-toolbar .spacer { flex: 1; }
+        .preview-filename {
+            font-size: 16px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .email-label {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+        embed.pdf-embed {
+            flex: 1;
+            width: 100%;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            min-height: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <span class="header-title">Invoice Preview</span>
+        {% if biz %}
+        <span class="header-biz">{{ biz.company }}</span>
+        {% endif %}
+    </header>
+
+    <div class="preview-page">
+        <div class="preview-toolbar">
+            <a href="/" class="btn-secondary">← Back</a>
+            <span class="preview-filename">{{ filename }}</span>
+            <span class="spacer"></span>
+            {% if client_email %}
+            <span class="email-label">{{ client_email }}</span>
+            <button type="button" class="btn-secondary" id="email-btn">Email</button>
+            {% else %}
+            <span class="email-label">No email on file</span>
+            <button type="button" class="btn-secondary" disabled>Email</button>
+            {% endif %}
+            <a href="{{ url_for('download', token=token) }}" class="btn-primary" id="download-btn">Download</a>
+        </div>
+        <embed class="pdf-embed"
+               src="{{ url_for('serve_pdf', token=token) }}"
+               type="application/pdf">
+    </div>
+
+<script>
+document.getElementById('download-btn').addEventListener('click', () => {
+    sessionStorage.removeItem('invoiceFormDraft');
+});
+
+{% if client_email %}
+document.getElementById('email-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('email-btn');
+    const original = btn.textContent;
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/email/{{ token }}', { method: 'POST' });
+        if (res.ok) {
+            const { email } = await res.json();
+            btn.textContent = `Sent to ${email} ✓`;
+            sessionStorage.removeItem('invoiceFormDraft');
+        } else {
+            btn.textContent = original;
+            btn.disabled = false;
+            alert('Error: ' + await res.text());
+        }
+    } catch (err) {
+        btn.textContent = original;
+        btn.disabled = false;
+        alert('Network error: ' + err.message);
+    }
+});
+{% endif %}
+</script>
+</body>
+</html>
