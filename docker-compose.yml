@@ -4,8 +4,10 @@ services:
     ports:
       - "5000:5000"
     env_file: .env
+    environment:
+      DB_PATH: /data/clients.db
     volumes:
-      - invoice-data:/app/clients.db
+      - invoice-data:/data
 
 volumes:
   invoice-data:

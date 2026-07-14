@@ -1,7 +1,8 @@
 from pathlib import Path
 import sqlite3
+import os
 
-DB_PATH = Path(__file__).parent / 'clients.db'
+DB_PATH = Path(os.environ.get('DB_PATH', Path(__file__).parent / 'clients.db'))
 
 
 class Client:
