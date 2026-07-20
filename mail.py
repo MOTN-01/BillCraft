@@ -3,7 +3,7 @@ import smtplib
 from email.message import EmailMessage
 
 
-def send_invoice(to_email, filename, pdf_bytes, biz, invoice_num):
+def send_invoice(to_email, filename, pdf_bytes, biz, invoice_num, cc_emails=None):
     user = os.environ.get('EMAIL_USER')
     password = os.environ.get('EMAIL_PASS')
     if not user or not password:
@@ -12,6 +12,8 @@ def send_invoice(to_email, filename, pdf_bytes, biz, invoice_num):
     msg = EmailMessage()
     msg['From'] = user
     msg['To'] = to_email
+    if cc_emails:
+        msg['Cc'] = ', '.join(cc_emails)
     msg['Subject'] = f'Invoice #{invoice_num} from {biz["company"]}'
     msg.set_content(
         f'Hi,\n\nPlease find attached invoice #{invoice_num}.\n\n'

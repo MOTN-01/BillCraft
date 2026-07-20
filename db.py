@@ -6,11 +6,12 @@ DB_PATH = Path(os.environ.get('DB_PATH', Path(__file__).parent / 'clients.db'))
 
 
 class Client:
-    def __init__(self, name, street, city_state_zip, email=''):
+    def __init__(self, name, street, city_state_zip, email='', cc_emails=''):
         self.name = name
         self.street = street
         self.city_state_zip = city_state_zip
         self.email = email or ''
+        self.cc_emails = cc_emails or ''
 
 
 def init_db():
@@ -34,14 +35,16 @@ def init_db():
         cols = [r[1] for r in conn.execute('PRAGMA table_info(clients)').fetchall()]
         if 'email' not in cols:
             conn.execute('ALTER TABLE clients ADD COLUMN email TEXT')
+        if 'cc_emails' not in cols:
+            conn.execute('ALTER TABLE clients ADD COLUMN cc_emails TEXT')
 
 
 def get_clients():
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(
-            'SELECT name, street, statezip, email FROM clients ORDER BY name'
+            'SELECT name, street, statezip, email, cc_emails FROM clients ORDER BY name'
         ).fetchall()
-    return [Client(r[0], r[1], r[2], r[3]) for r in rows]
+    return [Client(r[0], r[1], r[2], r[3], r[4]) for r in rows]
 
 
 def get_client_email(name):
@@ -50,11 +53,19 @@ def get_client_email(name):
     return row[0] if row and row[0] else None
 
 
-def update_client(original_name, name, street, city_state_zip, email=''):
+def get_client_cc_emails(name):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute('SELECT cc_emails FROM clients WHERE name = ?', (name,)).fetchone()
+    if not row or not row[0]:
+        return []
+    return [e.strip() for e in row[0].split(',') if e.strip()]
+
+
+def update_client(original_name, name, street, city_state_zip, email='', cc_emails=''):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
-            'UPDATE clients SET name=?, street=?, statezip=?, email=? WHERE name=?',
-            (name, street, city_state_zip, email or None, original_name)
+            'UPDATE clients SET name=?, street=?, statezip=?, email=?, cc_emails=? WHERE name=?',
+            (name, street, city_state_zip, email or None, cc_emails or None, original_name)
         )
 
 
@@ -63,13 +74,13 @@ def delete_client(name):
         conn.execute('DELETE FROM clients WHERE name=?', (name,))
 
 
-def add_client(name, street, city_state_zip, email=''):
+def add_client(name, street, city_state_zip, email='', cc_emails=''):
     with sqlite3.connect(DB_PATH) as conn:
         exists = conn.execute('SELECT 1 FROM clients WHERE name = ?', (name,)).fetchone()
         if not exists:
             conn.execute(
-                'INSERT INTO clients (name, street, statezip, email) VALUES (?, ?, ?, ?)',
-                (name, street, city_state_zip, email or None)
+                'INSERT INTO clients (name, street, statezip, email, cc_emails) VALUES (?, ?, ?, ?, ?)',
+                (name, street, city_state_zip, email or None, cc_emails or None)
             )
 
 

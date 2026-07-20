@@ -1,5 +1,6 @@
 from db import (
-    get_clients, get_client_email, add_client, update_client, delete_client,
+    get_clients, get_client_email, get_client_cc_emails,
+    add_client, update_client, delete_client,
     load_business_info, save_business_info,
     load_invoice_counter, set_invoice_counter, increment_invoice_counter,
 )
@@ -61,6 +62,33 @@ def test_get_client_email_no_email_stored():
 
 def test_get_client_email_nonexistent():
     assert get_client_email('Ghost') is None
+
+
+def test_client_cc_emails():
+    add_client('CC Co', '1 St', 'City, ST 00000', 'main@example.com',
+               'a@example.com,b@example.com')
+    assert get_clients()[0].cc_emails == 'a@example.com,b@example.com'
+    assert get_client_cc_emails('CC Co') == ['a@example.com', 'b@example.com']
+
+
+def test_get_client_cc_emails_none_stored():
+    add_client('NoCC', '1 St', 'City, ST 00000')
+    assert get_client_cc_emails('NoCC') == []
+
+
+def test_update_client_cc_emails():
+    add_client('CC Co', '1 St', 'City, ST 00000')
+    update_client('CC Co', 'CC Co', '1 St', 'City, ST 00000',
+                  'main@example.com', 'new@example.com')
+    assert get_client_cc_emails('CC Co') == ['new@example.com']
+
+
+def test_add_client_empty_address():
+    add_client('No Address', '', '')
+    c = get_clients()[0]
+    assert c.name == 'No Address'
+    assert c.street == ''
+    assert c.city_state_zip == ''
 
 
 def test_load_business_info_empty():

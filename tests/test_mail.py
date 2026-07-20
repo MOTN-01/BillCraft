@@ -43,3 +43,37 @@ def test_send_invoice_calls_smtp(monkeypatch):
     mock_smtp.assert_called_once_with('smtp.gmail.com', 465)
     mock_instance.login.assert_called_once_with('from@gmail.com', 'app-password')
     mock_instance.send_message.assert_called_once()
+
+
+def test_send_invoice_with_cc(monkeypatch):
+    monkeypatch.setenv('EMAIL_USER', 'from@gmail.com')
+    monkeypatch.setenv('EMAIL_PASS', 'app-password')
+
+    mock_instance = MagicMock()
+    mock_smtp = MagicMock()
+    mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_instance)
+    mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
+
+    with patch('mail.smtplib.SMTP_SSL', mock_smtp):
+        send_invoice('client@example.com', 'invoice #42.pdf', _PDF, _BIZ, '42',
+                     ['cc1@example.com', 'cc2@example.com'])
+
+    msg = mock_instance.send_message.call_args[0][0]
+    assert msg['To'] == 'client@example.com'
+    assert msg['Cc'] == 'cc1@example.com, cc2@example.com'
+
+
+def test_send_invoice_no_cc_header_when_empty(monkeypatch):
+    monkeypatch.setenv('EMAIL_USER', 'from@gmail.com')
+    monkeypatch.setenv('EMAIL_PASS', 'app-password')
+
+    mock_instance = MagicMock()
+    mock_smtp = MagicMock()
+    mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_instance)
+    mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
+
+    with patch('mail.smtplib.SMTP_SSL', mock_smtp):
+        send_invoice('client@example.com', 'invoice #42.pdf', _PDF, _BIZ, '42', [])
+
+    msg = mock_instance.send_message.call_args[0][0]
+    assert msg['Cc'] is None

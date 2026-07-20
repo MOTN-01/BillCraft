@@ -82,11 +82,11 @@
         <div class="desc-price-grid">
             <div>
                 <label>Description</label>
-                <textarea name="material" rows="6" required></textarea>
+                <textarea name="material" rows="6"></textarea>
             </div>
             <div class="price-col">
                 <label>Price $</label>
-                <input type="number" step="0.01" min="0" name="material_price" placeholder="$0" required>
+                <input type="number" step="0.01" min="0" name="material_price" placeholder="$0">
             </div>
         </div>
     </div>
@@ -112,11 +112,16 @@
             <label>Business Name</label>
             <input type="text" name="name" required autofocus>
             <label>Street Address</label>
-            <input type="text" name="street" required>
+            <input type="text" name="street" placeholder="optional">
             <label>City, State, Zip</label>
-            <input type="text" name="city_state_zip" required>
+            <input type="text" name="city_state_zip" placeholder="optional">
             <label>Email (for sending invoices)</label>
             <input type="email" name="email" placeholder="optional">
+            <label>CC Emails</label>
+            <div id="add-cc-list" class="cc-list">
+                <input type="email" name="cc_emails" placeholder="optional">
+            </div>
+            <button type="button" class="btn-secondary btn-add-cc" onclick="addCcInput('add-cc-list', '', true)">+ Add another CC</button>
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" onclick="hideModal('add-client-modal')">Cancel</button>
                 <button type="submit" class="btn-primary">Add Client</button>
@@ -134,11 +139,14 @@
             <label>Business Name</label>
             <input type="text" name="name" id="edit-client-name" required>
             <label>Street Address</label>
-            <input type="text" name="street" id="edit-client-street" required>
+            <input type="text" name="street" id="edit-client-street" placeholder="optional">
             <label>City, State, Zip</label>
-            <input type="text" name="city_state_zip" id="edit-client-csz" required>
+            <input type="text" name="city_state_zip" id="edit-client-csz" placeholder="optional">
             <label>Email</label>
             <input type="email" name="email" id="edit-client-email" placeholder="optional">
+            <label>CC Emails</label>
+            <div id="edit-cc-list" class="cc-list"></div>
+            <button type="button" class="btn-secondary btn-add-cc" onclick="addCcInput('edit-cc-list', '', true)">+ Add another CC</button>
             <div class="modal-actions">
                 <button type="button" class="btn-danger" id="delete-client-btn">Delete</button>
                 <button type="button" class="btn-secondary" onclick="hideModal('edit-client-modal')">Cancel</button>
@@ -214,6 +222,17 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
 });
 
+// ── CC email inputs ───────────────────────────────────────────────────────
+function addCcInput(listId, value = '', focus = false) {
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.name = 'cc_emails';
+    input.placeholder = 'optional';
+    input.value = value;
+    document.getElementById(listId).appendChild(input);
+    if (focus) input.focus();
+}
+
 // ── Edit client ───────────────────────────────────────────────────────────
 function openEditClient() {
     const name = document.getElementById('client-select').value;
@@ -224,6 +243,11 @@ function openEditClient() {
     document.getElementById('edit-client-street').value = client.street;
     document.getElementById('edit-client-csz').value = client.city_state_zip;
     document.getElementById('edit-client-email').value = client.email || '';
+    const ccList = document.getElementById('edit-cc-list');
+    ccList.innerHTML = '';
+    const ccs = (client.cc_emails || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (ccs.length === 0) ccs.push('');
+    ccs.forEach(cc => addCcInput('edit-cc-list', cc));
     document.getElementById('delete-client-name').value = client.name;
     showModal('edit-client-modal');
 }

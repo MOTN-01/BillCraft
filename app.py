@@ -3,7 +3,7 @@ from io import BytesIO
 import uuid
 import json
 from dotenv import load_dotenv
-from db import (init_db, get_clients, get_client_email,
+from db import (init_db, get_clients, get_client_email, get_client_cc_emails,
                 add_client as db_add_client, update_client, delete_client,
                 load_business_info, save_business_info,
                 load_invoice_counter, set_invoice_counter, increment_invoice_counter)
@@ -31,7 +31,8 @@ def index():
     clients = get_clients()
     clients_json = json.dumps([
         {'name': c.name, 'street': c.street,
-         'city_state_zip': c.city_state_zip, 'email': c.email}
+         'city_state_zip': c.city_state_zip, 'email': c.email,
+         'cc_emails': c.cc_emails}
         for c in clients
     ])
     return render_template('index.html',
@@ -61,12 +62,17 @@ def edit_business():
     return redirect(url_for('index'))
 
 
+def _cc_emails_from_form():
+    return ','.join(e.strip() for e in request.form.getlist('cc_emails') if e.strip())
+
+
 @app.route('/add-client', methods=['POST'])
 def add_client():
     name = request.form['name']
-    db_add_client(name, request.form['street'],
-                  request.form['city_state_zip'],
-                  request.form.get('email', ''))
+    db_add_client(name, request.form.get('street', ''),
+                  request.form.get('city_state_zip', ''),
+                  request.form.get('email', ''),
+                  _cc_emails_from_form())
     return redirect(url_for('index', client=name))
 
 
@@ -74,9 +80,10 @@ def add_client():
 def edit_client():
     update_client(request.form['original_name'],
                   request.form['name'],
-                  request.form['street'],
-                  request.form['city_state_zip'],
-                  request.form.get('email', ''))
+                  request.form.get('street', ''),
+                  request.form.get('city_state_zip', ''),
+                  request.form.get('email', ''),
+                  _cc_emails_from_form())
     return redirect(url_for('index', client=request.form['name']))
 
 
@@ -109,7 +116,7 @@ def generate():
         request.form['work'],
         work_price,
         invoice_num,
-        request.form['material'],
+        request.form.get('material', ''),
         material_price,
         biz
     )
@@ -169,7 +176,9 @@ def email_invoice(token):
         return f'No email on file for {entry["client_name"]}', 400
     try:
         biz = load_business_info()
-        send_invoice(client_email, entry['filename'], entry['data'], biz, entry['invoice_num'])
+        cc_emails = get_client_cc_emails(entry['client_name'])
+        send_invoice(client_email, entry['filename'], entry['data'], biz,
+                     entry['invoice_num'], cc_emails)
         if not entry['committed']:
             increment_invoice_counter()
             entry['committed'] = True

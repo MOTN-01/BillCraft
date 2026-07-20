@@ -73,6 +73,26 @@ def test_add_client(client):
     assert len(db.get_clients()) == 1
 
 
+def test_add_client_with_cc_emails(client):
+    _seed_biz()
+    res = client.post('/add-client', data={
+        'name': 'CC Client',
+        'street': '5 New St',
+        'city_state_zip': 'Newtown, NY 10001',
+        'email': 'new@example.com',
+        'cc_emails': ['cc1@example.com', '  ', 'cc2@example.com'],
+    })
+    assert res.status_code == 302
+    assert db.get_client_cc_emails('CC Client') == ['cc1@example.com', 'cc2@example.com']
+
+
+def test_add_client_without_address(client):
+    _seed_biz()
+    res = client.post('/add-client', data={'name': 'Minimal Client'})
+    assert res.status_code == 302
+    assert db.get_clients()[0].name == 'Minimal Client'
+
+
 def test_edit_client(client):
     _seed_biz()
     _seed_client()
@@ -101,6 +121,14 @@ def test_generate_returns_token(client):
     _seed_biz()
     _seed_client()
     res = _generate(client)
+    assert res.status_code == 200
+    assert 'token' in res.get_json()
+
+
+def test_generate_without_materials(client):
+    _seed_biz()
+    _seed_client()
+    res = _generate(client, material='', material_price='')
     assert res.status_code == 200
     assert 'token' in res.get_json()
 
